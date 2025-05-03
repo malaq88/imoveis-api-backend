@@ -178,12 +178,26 @@ def listar_imoveis(
     return query.all()
 
 @app.post("/imoveis", response_model=schemas.ImovelOut)
-def criar_imovel(
-    imovel: schemas.ImovelCreate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_active_admin)
+async def criar_imovel(
+    imovel: schemas.ImovelCreate = Depends(schemas.ImovelCreate.as_form),
+    imagens: List[UploadFile]     = File(...),
+    db: Session                  = Depends(get_db),
+    _: models.User               = Depends(get_current_active_user),
 ):
-    return crud.criar_imovel(db, imovel)
+    # 1) salva cada UploadFile em disco e coleta filename gerado
+    saved_filenames: List[str] = []
+    for file in imagens:
+        validar_tipo(file)
+        ext = os.path.splitext(file.filename)[1]
+        unique_name = f"{uuid.uuid4().hex}{ext}"
+        dest = os.path.join(IMAGES_DIR, unique_name)
+        async with aiofiles.open(dest, "wb") as out:
+            await out.write(await file.read())
+        saved_filenames.append(unique_name)
+
+    # 2) cria o imovel no banco, passando também as imagens
+    im = crud.criar_imovel(db, imovel, image_filenames=saved_filenames)
+    return im
 
 @app.put("/imoveis/{imovel_id}", response_model=schemas.ImovelOut)
 def update_imovel(

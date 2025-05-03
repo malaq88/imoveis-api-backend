@@ -1,3 +1,4 @@
+from typing import List, Optional
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
@@ -6,16 +7,25 @@ from app import models, schemas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # CRUD Imóvel
-def criar_imovel(db: Session, imovel_in: schemas.ImovelCreate):
-    db_imovel = models.Imovel(**imovel_in.dict(exclude={"image_filenames"}))
+def criar_imovel(
+    db: Session,
+    imovel_in: schemas.ImovelCreate,
+    image_filenames: Optional[List[str]] = None
+) -> models.Imovel:
+    # cria o objeto Imovel
+    db_imovel = models.Imovel(**imovel_in.dict())
     db.add(db_imovel)
     db.commit()
     db.refresh(db_imovel)
-    for fname in imovel_in.image_filenames:
-        img = models.Image(filename=fname, imovel_id=db_imovel.id)
-        db.add(img)
-    db.commit()
-    db.refresh(db_imovel)
+
+    # só depois de ter o ID, adiciona as imagens
+    if image_filenames:
+        for fname in image_filenames:
+            img = models.Image(filename=fname, imovel_id=db_imovel.id)
+            db.add(img)
+        db.commit()
+        db.refresh(db_imovel)
+
     return db_imovel
 
 def listar_imoveis(db: Session):

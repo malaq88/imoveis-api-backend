@@ -13,10 +13,12 @@ class Imovel(Base):
     distancia_praia  = Column(String, nullable=False)
     tipo_aluguel     = Column(String, nullable=False)
     mobilhada        = Column(Boolean, nullable=False)
+    preco            = Column(String, nullable=False)    # <-- novo campo
     images           = relationship(
-        "Image", back_populates="imovel", cascade="all, delete-orphan"
+        "Image",
+        back_populates="imovel",
+        cascade="all, delete-orphan"
     )
-
 class Image(Base):
     __tablename__ = "images"
 
