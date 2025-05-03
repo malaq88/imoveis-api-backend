@@ -31,7 +31,8 @@ class ImovelCreate(ImovelBase):
         distancia_praia: str  = Form(...),
         tipo_aluguel: str     = Form(...),
         mobilhada: bool       = Form(...),
-        preco: float          = Form(...),
+        preco: str            = Form(...),
+        disponivel: bool      = Form(True),
     ) -> "ImovelCreate":
         return cls(
             titulo=titulo,
@@ -42,6 +43,7 @@ class ImovelCreate(ImovelBase):
             tipo_aluguel=tipo_aluguel,
             mobilhada=mobilhada,
             preco=preco,
+            disponivel=disponivel,
         )
 
 class ImovelUpdate(BaseModel):
@@ -52,8 +54,9 @@ class ImovelUpdate(BaseModel):
     distancia_praia:  Optional[str]      = None
     tipo_aluguel:     Optional[str]      = None
     mobilhada:        Optional[bool]     = None
-    preco:            Optional[float]    = None
-    image_filenames:  Optional[List[str]] = None
+    preco:            Optional[str]      = None
+    disponivel:       Optional[bool]     = None,
+    image_filenames:  Optional[List[str]]= None
 
     @classmethod
     def as_form(
@@ -66,6 +69,7 @@ class ImovelUpdate(BaseModel):
         tipo_aluguel: Optional[str]     = Form(None),
         mobilhada: Optional[bool]       = Form(None),
         preco: Optional[float]          = Form(None),
+        disponivel: Optional[bool]      = Form(True),
         image_filenames: Optional[List[str]] = Form(None),
     ) -> "ImovelUpdate":
         return cls(
@@ -78,6 +82,7 @@ class ImovelUpdate(BaseModel):
             mobilhada=mobilhada,
             preco=preco,
             image_filenames=image_filenames,
+            disponivel=disponivel,
         )
 
     class Config:
@@ -93,6 +98,7 @@ class ImovelOut(BaseModel):
     tipo_aluguel: str
     mobilhada: bool
     preco: float
+    disponivel: bool
 
     # pegamos o relacionamento .images do ORM
     imagens: List[str] = Field(..., alias="images")

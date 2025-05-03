@@ -170,10 +170,10 @@ def listar_imoveis(
     if distancia_praia:
         query = query.filter(models.Imovel.distancia_praia == distancia_praia)
     if quartos is not None:
-        query = query.filter(models.Imovel.quartos == quartos)
+        query = query.filter(models.Imovel.quartos >= quartos)
     if tipo_aluguel:
         query = query.filter(models.Imovel.tipo_aluguel == tipo_aluguel)
-    return query.all()
+    return query.filter(models.Imovel.disponivel == True).all()
 
 # Imóveis - criação
 @app.post("/imoveis", response_model=schemas.ImovelOut)
@@ -240,7 +240,7 @@ async def upload_images_para_imovel(
     imovel_id: int = Path(..., description="ID do imóvel"),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_active_admin)
+    _: models.User = Depends(get_current_active_user)
 ):
     saved = []
     for file in files:
@@ -262,9 +262,30 @@ async def upload_images_para_imovel(
 @app.get("/images/{filename}")
 def serve_image(
     filename: str,
-    _: models.User = Depends(get_current_active_admin)
+    _: models.User = Depends(get_current_active_user)
 ):
     path = os.path.join(IMAGES_DIR, filename)
     if not os.path.isfile(path):
         raise HTTPException(status_code=404, detail="Imagem não encontrada")
     return FileResponse(path=path)
+
+
+@app.patch(
+    "/imoveis/{imovel_id}/disponibilidade",
+    response_model=schemas.ImovelOut,
+    summary="Alterna disponibilidade do imóvel"
+)
+def toggle_disponibilidade(
+    imovel_id: int,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_active_user)
+):
+    """
+    Se o imóvel estiver disponível, marca como indisponível;
+    se estiver indisponível, marca como disponível.
+    """
+    try:
+        im = crud.toggle_imovel_disponibilidade(db, imovel_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Imóvel não encontrado")
+    return im

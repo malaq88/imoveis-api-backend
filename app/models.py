@@ -14,6 +14,7 @@ class Imovel(Base):
     tipo_aluguel     = Column(String, nullable=False)
     mobilhada        = Column(Boolean, nullable=False)
     preco            = Column(String, nullable=False)    # <-- novo campo
+    disponivel       = Column(Boolean, default=True, nullable=False)
     images           = relationship(
         "Image",
         back_populates="imovel",

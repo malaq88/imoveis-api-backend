@@ -62,3 +62,12 @@ def create_user(db: Session, user_in: schemas.UserCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def toggle_imovel_disponibilidade(db: Session, imovel_id: int) -> models.Imovel:
+    imovel = db.query(models.Imovel).filter(models.Imovel.id == imovel_id).first()
+    if not imovel:
+        raise ValueError("Imóvel não encontrado")
+    imovel.disponivel = not imovel.disponivel
+    db.commit()
+    db.refresh(imovel)
+    return imovel
