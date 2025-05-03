@@ -9,3 +9,5 @@ python-dotenv
 bcrypt
 python-jose[cryptography]
 passlib[bcrypt]
+httpx
+python-multipart
