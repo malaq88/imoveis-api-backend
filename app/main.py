@@ -4,7 +4,7 @@ from typing import Optional, List
 from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Path
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Path, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app import crud, schemas, models
 from app.settings import settings
 from app.database import SessionLocal, engine, Base
+from app.schemas import ImovelUpdate  # já deve ter o método as_form
 
 # Configurações carregadas do .env
 SECRET_KEY = settings.SECRET_KEY
@@ -28,14 +29,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 # Cria tabelas no banco
 Base.metadata.create_all(bind=engine)
 
-# Lifespan handler para startup e shutdown
-defining_lifespan = asynccontextmanager(
-    lambda app: __import__('builtins')
-)
-# Correção: descriptor asynccontextmanager wrapper
+# Lifespan handler para startup (cria admin) e shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: seed admin
     db = SessionLocal()
     try:
         if not crud.get_user_by_username(db, settings.ADMIN_USERNAME):
@@ -50,8 +46,8 @@ async def lifespan(app: FastAPI):
     finally:
         db.close()
     yield
-    # Shutdown: (opcional)
-    
+    # aqui poderia colocar lógica de shutdown, se necessário
+
 # Cria a aplicação FastAPI com lifespan
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -69,7 +65,7 @@ def get_db():
     finally:
         db.close()
 
-# Funções de autenticação e autorização
+# --- Autenticação ---
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -122,7 +118,9 @@ def validar_tipo(file: UploadFile):
     if file.content_type not in ("image/jpeg", "image/png"):
         raise HTTPException(status_code=400, detail="Apenas JPEG ou PNG são aceitos")
 
-# Endpoint de autenticação
+# --- Endpoints ---
+
+# Token
 @app.post("/token", response_model=schemas.Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
@@ -135,15 +133,15 @@ async def login_for_access_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"}
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = jwt.encode(
-        {"sub": user.username, "exp": datetime.utcnow() + access_token_expires},
+        {"sub": user.username, "exp": datetime.utcnow() + expires},
         SECRET_KEY,
         algorithm=ALGORITHM
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Endpoints de usuário
+# Usuários
 @app.post("/users/", response_model=schemas.UserOut)
 def create_user(
     user_in: schemas.UserCreate,
@@ -160,7 +158,7 @@ def read_users_me(
 ):
     return current_user
 
-# Endpoints de imóveis
+# Imóveis - listagem
 @app.get("/imoveis", response_model=List[schemas.ImovelOut])
 def listar_imoveis(
     distancia_praia: Optional[str] = None,
@@ -177,6 +175,7 @@ def listar_imoveis(
         query = query.filter(models.Imovel.tipo_aluguel == tipo_aluguel)
     return query.all()
 
+# Imóveis - criação
 @app.post("/imoveis", response_model=schemas.ImovelOut)
 async def criar_imovel(
     imovel: schemas.ImovelCreate = Depends(schemas.ImovelCreate.as_form),
@@ -184,7 +183,6 @@ async def criar_imovel(
     db: Session                  = Depends(get_db),
     _: models.User               = Depends(get_current_active_user),
 ):
-    # 1) salva cada UploadFile em disco e coleta filename gerado
     saved_filenames: List[str] = []
     for file in imagens:
         validar_tipo(file)
@@ -195,39 +193,48 @@ async def criar_imovel(
             await out.write(await file.read())
         saved_filenames.append(unique_name)
 
-    # 2) cria o imovel no banco, passando também as imagens
     im = crud.criar_imovel(db, imovel, image_filenames=saved_filenames)
     return im
 
+# Imóveis - atualização (multipart/form-data)
 @app.put("/imoveis/{imovel_id}", response_model=schemas.ImovelOut)
-def update_imovel(
+async def update_imovel(
     imovel_id: int,
-    imovel_in: schemas.ImovelCreate,
-    db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_active_admin)
+    imovel_in: ImovelUpdate                = Depends(ImovelUpdate.as_form),
+    novas_imagens: List[UploadFile]        = File(None),
+    db: Session                            = Depends(get_db),
+    _: models.User                         = Depends(get_current_active_user),
 ):
     db_imovel = db.query(models.Imovel).filter(models.Imovel.id == imovel_id).first()
     if not db_imovel:
         raise HTTPException(status_code=404, detail="Imóvel não encontrado")
-    for field, value in imovel_in.dict(exclude={"image_filenames"}).items():
+
+    # 1) salva uploads novos (se houver)
+    saved_filenames: List[str] = []
+    if novas_imagens:
+        for file in novas_imagens:
+            validar_tipo(file)
+            ext = os.path.splitext(file.filename)[1]
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            dest = os.path.join(IMAGES_DIR, unique_name)
+            async with aiofiles.open(dest, "wb") as out:
+                await out.write(await file.read())
+            saved_filenames.append(unique_name)
+
+    # 2) atualiza campos não-nulos
+    update_data = imovel_in.dict(exclude_unset=True, exclude={"image_filenames"})
+    for field, value in update_data.items():
         setattr(db_imovel, field, value)
-    if imovel_in.image_filenames:
-        existing = [img.filename for img in db_imovel.images]
-        for fname in existing:
-            if fname not in imovel_in.image_filenames:
-                path = os.path.join(IMAGES_DIR, fname)
-                if os.path.isfile(path):
-                    os.remove(path)
-                img_obj = next(i for i in db_imovel.images if i.filename == fname)
-                db.delete(img_obj)
-        for fname in imovel_in.image_filenames:
-            if fname not in existing:
-                db.add(models.Image(filename=fname, imovel_id=db_imovel.id))
+
+    # 3) associa as imagens recém-salvas
+    for fn in saved_filenames:
+        db_imovel.images.append(models.Image(filename=fn))
+
     db.commit()
     db.refresh(db_imovel)
     return db_imovel
 
-# Endpoints de upload de imagens
+# Upload de imagens extra
 @app.post("/imoveis/{imovel_id}/images", response_model=schemas.ImovelOut)
 async def upload_images_para_imovel(
     imovel_id: int = Path(..., description="ID do imóvel"),
@@ -251,7 +258,7 @@ async def upload_images_para_imovel(
             os.remove(os.path.join(IMAGES_DIR, fn))
         raise HTTPException(status_code=404, detail="Imóvel não encontrado")
 
-# Endpoint para servir imagens
+# Servir imagens
 @app.get("/images/{filename}")
 def serve_image(
     filename: str,

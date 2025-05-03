@@ -18,14 +18,7 @@ class ImovelBase(BaseModel):
     tipo_aluguel: str
     mobilhada: bool
 
-class ImovelCreate(BaseModel):
-    titulo: str
-    descricao: str
-    metragem: int
-    quartos: int
-    distancia_praia: str
-    tipo_aluguel: str
-    mobilhada: bool
+class ImovelCreate(ImovelBase):
     preco: float
 
     @classmethod
@@ -39,7 +32,7 @@ class ImovelCreate(BaseModel):
         tipo_aluguel: str     = Form(...),
         mobilhada: bool       = Form(...),
         preco: float          = Form(...),
-    ):
+    ) -> "ImovelCreate":
         return cls(
             titulo=titulo,
             descricao=descricao,
@@ -51,6 +44,45 @@ class ImovelCreate(BaseModel):
             preco=preco,
         )
 
+class ImovelUpdate(BaseModel):
+    titulo:           Optional[str]      = None
+    descricao:        Optional[str]      = None
+    metragem:         Optional[int]      = None
+    quartos:          Optional[int]      = None
+    distancia_praia:  Optional[str]      = None
+    tipo_aluguel:     Optional[str]      = None
+    mobilhada:        Optional[bool]     = None
+    preco:            Optional[float]    = None
+    image_filenames:  Optional[List[str]] = None
+
+    @classmethod
+    def as_form(
+        cls,
+        titulo: Optional[str]           = Form(None),
+        descricao: Optional[str]        = Form(None),
+        metragem: Optional[int]         = Form(None),
+        quartos: Optional[int]          = Form(None),
+        distancia_praia: Optional[str]  = Form(None),
+        tipo_aluguel: Optional[str]     = Form(None),
+        mobilhada: Optional[bool]       = Form(None),
+        preco: Optional[float]          = Form(None),
+        image_filenames: Optional[List[str]] = Form(None),
+    ) -> "ImovelUpdate":
+        return cls(
+            titulo=titulo,
+            descricao=descricao,
+            metragem=metragem,
+            quartos=quartos,
+            distancia_praia=distancia_praia,
+            tipo_aluguel=tipo_aluguel,
+            mobilhada=mobilhada,
+            preco=preco,
+            image_filenames=image_filenames,
+        )
+
+    class Config:
+        extra = "forbid"
+
 class ImovelOut(BaseModel):
     id: int
     titulo: str
@@ -61,19 +93,17 @@ class ImovelOut(BaseModel):
     tipo_aluguel: str
     mobilhada: bool
     preco: float
-    # aqui dizemos: pega do ORM o atributo `images` e popula nossa lista `imagens`
+
+    # pegamos o relacionamento .images do ORM
     imagens: List[str] = Field(..., alias="images")
 
     @validator("imagens", pre=True)
     def extract_filenames(cls, v):
-        # v vai ser a lista de Image ORM objects
         return [f"/images/{img.filename}" for img in v]
 
     class Config:
         orm_mode = True
-        # permite popular via o alias (alias="images")
         allow_population_by_field_name = True
-
 
 # Schemas de usuário
 class UserBase(BaseModel):
