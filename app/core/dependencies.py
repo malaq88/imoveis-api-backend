@@ -92,7 +92,7 @@ async def get_current_active_admin(
 
 
 # Diretório para armazenar imagens
-IMAGES_DIR = os.path.join(os.path.dirname(__file__), "app/images")
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
 def validar_tipo(file: UploadFile):
