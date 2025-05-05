@@ -2,9 +2,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.database import Base
-from app import crud, schemas
-from app import models
+from app.core.database import Base
+from app.schemas import imovel_schema, user_schema
+from app.services import imovel_service, user_service
 
 # Use in-memory SQLite database for tests
 engine = create_engine(
@@ -29,7 +29,7 @@ def db_session():
 # CRUD Imóvel Tests
 
 def test_criar_imovel_sem_imagens(db_session):
-    imovel_in = schemas.ImovelCreate(
+    imovel_in = imovel_schema.ImovelCreate(
         titulo="Apto Teste",
         descricao="Descrição teste",
         metragem=100,
@@ -39,7 +39,7 @@ def test_criar_imovel_sem_imagens(db_session):
         mobilhada=True,
         preco=200.0
     )
-    imovel = crud.criar_imovel(db_session, imovel_in)
+    imovel = imovel_service.criar_imovel(db_session, imovel_in)
     assert imovel.id is not None
     assert imovel.titulo == imovel_in.titulo
     assert imovel.descricao == imovel_in.descricao
@@ -48,7 +48,7 @@ def test_criar_imovel_sem_imagens(db_session):
 
 
 def test_criar_imovel_com_imagens(db_session):
-    imovel_in = schemas.ImovelCreate(
+    imovel_in = imovel_schema.ImovelCreate(
         titulo="Casa Teste",
         descricao="Outra descrição",
         metragem=150,
@@ -59,7 +59,7 @@ def test_criar_imovel_com_imagens(db_session):
         preco=500.0
     )
     filenames = ["img1.jpg", "img2.png"]
-    imovel = crud.criar_imovel(db_session, imovel_in, image_filenames=filenames)
+    imovel = imovel_service.criar_imovel(db_session, imovel_in, image_filenames=filenames)
     assert imovel.id is not None
     assert len(imovel.images) == 2
     assert {img.filename for img in imovel.images} == set(filenames)
@@ -68,7 +68,7 @@ def test_criar_imovel_com_imagens(db_session):
 def test_listar_imoveis(db_session):
     # Create two imóveis
     for i in range(2):
-        imovel_in = schemas.ImovelCreate(
+        imovel_in = imovel_schema.ImovelCreate(
             titulo=f"Imovel{i}",
             descricao="Desc",
             metragem=50 + i,
@@ -78,13 +78,13 @@ def test_listar_imoveis(db_session):
             mobilhada=True,
             preco=100.0 + i
         )
-        crud.criar_imovel(db_session, imovel_in)
-    imoveis = crud.listar_imoveis(db_session)
+        imovel_service.criar_imovel(db_session, imovel_in)
+    imoveis = imovel_service.listar_imoveis(db_session)
     assert len(imoveis) == 2
 
 
 def test_add_images_to_imovel(db_session):
-    imovel_in = schemas.ImovelCreate(
+    imovel_in = imovel_schema.ImovelCreate(
         titulo="Img Teste",
         descricao="Desc",
         metragem=80,
@@ -94,33 +94,33 @@ def test_add_images_to_imovel(db_session):
         mobilhada=False,
         preco=300.0
     )
-    imovel = crud.criar_imovel(db_session, imovel_in)
+    imovel = imovel_service.criar_imovel(db_session, imovel_in)
     filenames = ["nova1.png"]
-    updated = crud.add_images_to_imovel(db_session, imovel.id, filenames)
+    updated = imovel_service.add_images_to_imovel(db_session, imovel.id, filenames)
     assert len(updated.images) == 1
     assert updated.images[0].filename == "nova1.png"
 
 
 def test_add_images_to_imovel_not_found(db_session):
     with pytest.raises(ValueError):
-        crud.add_images_to_imovel(db_session, 999, ["x.jpg"])
+        imovel_service.add_images_to_imovel(db_session, 999, ["x.jpg"])
 
 # CRUD Usuário Tests
 
 def test_get_user_by_username_none(db_session):
-    user = crud.get_user_by_username(db_session, "usuario_inexistente")
+    user = user_service.get_user_by_username(db_session, "usuario_inexistente")
     assert user is None
 
 
 def test_create_user_and_get(db_session):
-    user_in = schemas.UserCreate(
+    user_in = user_schema.UserCreate(
         username="user1",
         email="user1@example.com",
         full_name="User One",
         password="senha123",
         is_admin=True
     )
-    user = crud.create_user(db_session, user_in)
+    user = user_service.create_user(db_session, user_in)
     # After creation, user should have an ID and hashed password
     assert user.id is not None
     assert user.username == user_in.username
@@ -131,7 +131,7 @@ def test_create_user_and_get(db_session):
     assert user.disabled is False
 
     # Fetch the same user
-    fetched = crud.get_user_by_username(db_session, user_in.username)
+    fetched = user_service.get_user_by_username(db_session, user_in.username)
     assert fetched is not None
     assert fetched.id == user.id
     assert fetched.username == user.username

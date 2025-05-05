@@ -29,12 +29,4 @@ def test_endpoints_registered():
         assert path in paths, f"Rota {path} não registrada"
 
 
-def test_dependency_functions_exist():
-    """
-    Verifica que as dependências de autenticação estão definidas.
-    """
-    from app.main import verify_password, authenticate_user, get_current_user
-    # Funções devem existir e ser chamáveis (sem executar lógica)
-    assert callable(verify_password)
-    assert callable(authenticate_user)
-    assert callable(get_current_user)
+

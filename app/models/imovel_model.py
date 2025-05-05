@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database import Base
+from app.core.database import Base
 
 class Imovel(Base):
     __tablename__ = "imoveis"
@@ -27,14 +27,3 @@ class Image(Base):
     filename  = Column(String, unique=True, nullable=False, index=True)
     imovel_id = Column(Integer, ForeignKey("imoveis.id", ondelete="CASCADE"))
     imovel    = relationship("Imovel", back_populates="images")
-
-class User(Base):
-    __tablename__ = "users"
-
-    id              = Column(Integer, primary_key=True, index=True)
-    username        = Column(String, unique=True, index=True, nullable=False)
-    full_name       = Column(String, nullable=True)
-    email           = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-    disabled        = Column(Boolean, default=False)
-    is_admin        = Column(Boolean, default=False)
