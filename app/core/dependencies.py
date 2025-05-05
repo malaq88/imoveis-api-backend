@@ -89,12 +89,3 @@ async def get_current_active_admin(
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Admin privileges required")
     return current_user
-
-
-# Diretório para armazenar imagens
-IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
-os.makedirs(IMAGES_DIR, exist_ok=True)
-
-def validar_tipo(file: UploadFile):
-    if file.content_type not in ("image/jpeg", "image/png"):
-        raise HTTPException(status_code=400, detail="Apenas JPEG ou PNG são aceitos")

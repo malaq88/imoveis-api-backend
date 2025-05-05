@@ -7,7 +7,7 @@ import aiofiles
 from fastapi import Depends, File, UploadFile
 from fastapi.responses import FileResponse
 
-from app.core.dependencies import get_db, get_current_active_user, validar_tipo, IMAGES_DIR
+from app.core.dependencies import get_db, get_current_active_user
 from fastapi import APIRouter, HTTPException, Path
 from app.models import imovel_model, user_model
 from app.schemas import imovel_schema
@@ -19,6 +19,14 @@ router = APIRouter(
     prefix="",
     tags=["Imóveis"],
 )
+
+# Diretório para armazenar imagens
+IMAGES_DIR = os.path.join(os.path.dirname(__file__), "images")
+os.makedirs(IMAGES_DIR, exist_ok=True)
+
+def validar_tipo(file: UploadFile):
+    if file.content_type not in ("image/jpeg", "image/png"):
+        raise HTTPException(status_code=400, detail="Apenas JPEG ou PNG são aceitos")
 
 
 @router.get("/imoveis", response_model=List[imovel_schema.ImovelOut])
