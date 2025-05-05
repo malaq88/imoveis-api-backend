@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.database import Base
+from database import Base
 from app.schemas import imovel_schema, user_schema
 from app.services import imovel_service, user_service
 

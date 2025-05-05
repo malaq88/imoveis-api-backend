@@ -36,6 +36,23 @@ def listar_imoveis(
         query = query.filter(imovel_model.Imovel.tipo_aluguel == tipo_aluguel)
     return query.filter(imovel_model.Imovel.disponivel == True).all()
 
+@router.get("/imoveis_indisponiveis", response_model=List[imovel_schema.ImovelOut])
+def listar_imoveis(
+    distancia_praia: Optional[str] = None,
+    quartos: Optional[int] = None,
+    tipo_aluguel: Optional[str] = None,
+    db: Session = Depends(get_db),
+    _: user_model.User = Depends(get_current_active_user),
+):
+    query = db.query(imovel_model.Imovel)
+    if distancia_praia:
+        query = query.filter(imovel_model.Imovel.distancia_praia == distancia_praia)
+    if quartos is not None:
+        query = query.filter(imovel_model.Imovel.quartos >= quartos)
+    if tipo_aluguel:
+        query = query.filter(imovel_model.Imovel.tipo_aluguel == tipo_aluguel)
+    return query.filter(imovel_model.Imovel.disponivel == False).all()
+
 # Imóveis - criação
 @router.post("/imoveis", response_model=imovel_schema.ImovelOut)
 async def criar_imovel(

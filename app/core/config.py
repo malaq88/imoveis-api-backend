@@ -5,8 +5,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    # credenciais para seed do primeiro admin
     ADMIN_USERNAME: str
     ADMIN_EMAIL: str
     ADMIN_PASSWORD: str

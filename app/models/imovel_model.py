@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from app.core.database import Base
+from database import Base
 
 class Imovel(Base):
     __tablename__ = "imoveis"

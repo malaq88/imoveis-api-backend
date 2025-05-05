@@ -2,8 +2,8 @@
 import os
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.security import OAuth2PasswordBearer
-from app.core.settings import settings
-from app.core.database import SessionLocal
+from app.core.config import settings
+from database import SessionLocal
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from jose import JWTError, jwt

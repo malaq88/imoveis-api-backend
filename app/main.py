@@ -7,8 +7,8 @@ from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 from app.core.dependencies import lifespan
-from app.core.settings import settings
-from app.core.database import SessionLocal, engine, Base
+from app.core.config import settings
+from database import SessionLocal, engine, Base
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
@@ -27,5 +27,5 @@ app.add_middleware(
 
 
 # --- Endpoints ---
-app.include_router(user_controller.router, prefix="", tags=["Usuários"])
-app.include_router(imovel_controller.router, prefix="", tags=["Imóveis"])
+app.include_router(user_controller.router)
+app.include_router(imovel_controller.router)

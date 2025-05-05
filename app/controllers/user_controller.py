@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from app.core.settings import settings
+from app.core.config import settings
 from app.models import user_model
 from passlib.context import CryptContext
 from app.schemas import user_schema
