@@ -8,7 +8,7 @@ from app.schemas import user_schema
 from app.services import user_service
 from sqlalchemy.orm import Session
 from app.core.dependencies import ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY, authenticate_user, get_db, get_current_active_user, get_current_active_admin # type: ignore
-from jose import JWTError, jwt
+from jose import jwt
 
 router = APIRouter(
     prefix="",

@@ -5,6 +5,7 @@ import uuid
 
 import aiofiles
 from fastapi import Depends, File, UploadFile
+from fastapi.responses import FileResponse
 
 from app.core.dependencies import get_db, get_current_active_user, validar_tipo, IMAGES_DIR
 from fastapi import APIRouter, HTTPException, Path

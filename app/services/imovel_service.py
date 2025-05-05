@@ -3,8 +3,6 @@ from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 from app.models  import imovel_model
-
-from app import schemas
 from app.schemas import imovel_schema
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
