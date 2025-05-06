@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.core.config import settings
 from app.models import user_model
@@ -50,8 +50,31 @@ def create_user(
         raise HTTPException(status_code=400, detail="Username already registered")
     return user_service.create_user(db, user_in)
 
+@router.get("/users/", response_model=list[user_schema.UserOut])
+def list_users(
+    db: Session = Depends(get_db),
+    _: user_model.User = Depends(get_current_active_admin)
+):
+    query = db.query(user_model.User).all()
+    if not query:
+        raise HTTPException(status_code=404, detail="No users found")
+    return query
+
 @router.get("/users/me", response_model=user_schema.UserOut)
 def read_users_me(
     current_user: user_model.User = Depends(get_current_active_user)
 ):
     return current_user
+
+@router.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(get_current_active_admin)]
+)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    if not user_service.delete_user(db, user_id):
+        raise HTTPException(status_code=404, detail="User not found")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
