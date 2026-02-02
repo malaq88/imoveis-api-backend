@@ -1,4 +1,5 @@
 # Dependência para sessão do banco de dados
+import logging
 import os
 from fastapi import Depends, FastAPI, HTTPException, UploadFile
 from fastapi.security import OAuth2PasswordBearer
@@ -11,6 +12,8 @@ from contextlib import asynccontextmanager
 from app.models import user_model
 from app.schemas import user_schema
 from app.services import user_service
+
+logger = logging.getLogger(__name__)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
@@ -29,7 +32,15 @@ async def lifespan(app: FastAPI):
                 password=settings.ADMIN_PASSWORD,
                 is_admin=True
             )
-            user_service.create_user(db, admin_in)
+            try:
+                user_service.create_user(db, admin_in)
+                logger.info(f"Usuário admin '{settings.ADMIN_USERNAME}' criado com sucesso")
+            except Exception as e:
+                logger.error(f"Erro ao criar usuário admin: {e}", exc_info=True)
+                raise
+    except Exception as e:
+        logger.error(f"Erro no startup: {e}", exc_info=True)
+        raise
     finally:
         db.close()
     yield

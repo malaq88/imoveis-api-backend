@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from typing import List, Optional
 from fastapi import Form
 
@@ -6,20 +6,20 @@ class ImageOut(BaseModel):
     id: int
     filename: str
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ImovelBase(BaseModel):
-    titulo: str
-    descricao: str
-    metragem: int
-    quartos: int
-    distancia_praia: str
-    tipo_aluguel: str
+    titulo: str = Field(..., min_length=1, max_length=200)
+    descricao: str = Field(..., min_length=1)
+    metragem: int = Field(..., gt=0, description="Metragem deve ser maior que zero")
+    quartos: int = Field(..., ge=0, description="Número de quartos deve ser maior ou igual a zero")
+    distancia_praia: str = Field(..., min_length=1)
+    tipo_aluguel: str = Field(..., min_length=1)
     mobilhada: bool
 
 class ImovelCreate(ImovelBase):
-    preco: float
+    preco: str
+    disponivel: bool = True
 
     @classmethod
     def as_form(
@@ -68,7 +68,7 @@ class ImovelUpdate(BaseModel):
         distancia_praia: Optional[str]  = Form(None),
         tipo_aluguel: Optional[str]     = Form(None),
         mobilhada: Optional[bool]       = Form(None),
-        preco: Optional[float]          = Form(None),
+        preco: Optional[str]            = Form(None),
         disponivel: Optional[bool]      = Form(True),
         image_filenames: Optional[List[str]] = Form(None),
     ) -> "ImovelUpdate":
@@ -85,8 +85,7 @@ class ImovelUpdate(BaseModel):
             disponivel=disponivel,
         )
 
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 class ImovelOut(BaseModel):
     id: int
@@ -97,18 +96,27 @@ class ImovelOut(BaseModel):
     distancia_praia: str
     tipo_aluguel: str
     mobilhada: bool
-    preco: float
+    preco: str
     disponivel: bool
 
     # pegamos o relacionamento .images do ORM
-    imagens: List[str] = Field(..., alias="images")
+    # Usamos Field com serialization_alias para manter compatibilidade
+    imagens: List[str] = Field(..., alias="images", serialization_alias="imagens")
 
-    @validator("imagens", pre=True)
+    @field_validator("imagens", mode="before")
+    @classmethod
     def extract_filenames(cls, v):
+        if not v:
+            return []
+        # Se já for uma lista de strings, retorna como está
+        if isinstance(v, list) and len(v) > 0 and isinstance(v[0], str):
+            return v
+        # Se for uma lista de objetos Image, extrai os filenames
         return [f"/images/{img.filename}" for img in v]
 
-    class Config:
-        orm_mode = True
-        allow_population_by_field_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True
+    )
 
 

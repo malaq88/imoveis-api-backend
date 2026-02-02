@@ -37,7 +37,7 @@ def test_criar_imovel_sem_imagens(db_session):
         distancia_praia="100m",
         tipo_aluguel="diaria",
         mobilhada=True,
-        preco=200.0
+        preco="200.00"
     )
     imovel = imovel_service.criar_imovel(db_session, imovel_in)
     assert imovel.id is not None
@@ -56,7 +56,7 @@ def test_criar_imovel_com_imagens(db_session):
         distancia_praia="200m",
         tipo_aluguel="mensal",
         mobilhada=False,
-        preco=500.0
+        preco="500.00"
     )
     filenames = ["img1.jpg", "img2.png"]
     imovel = imovel_service.criar_imovel(db_session, imovel_in, image_filenames=filenames)
@@ -76,7 +76,7 @@ def test_listar_imoveis(db_session):
             distancia_praia="300m",
             tipo_aluguel="anual",
             mobilhada=True,
-            preco=100.0 + i
+            preco=f"{100.0 + i:.2f}"
         )
         imovel_service.criar_imovel(db_session, imovel_in)
     imoveis = imovel_service.listar_imoveis(db_session)
@@ -92,7 +92,7 @@ def test_add_images_to_imovel(db_session):
         distancia_praia="50m",
         tipo_aluguel="diaria",
         mobilhada=False,
-        preco=300.0
+        preco="300.00"
     )
     imovel = imovel_service.criar_imovel(db_session, imovel_in)
     filenames = ["nova1.png"]

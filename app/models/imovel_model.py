@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -9,12 +9,19 @@ class Imovel(Base):
     titulo           = Column(String, nullable=False)
     descricao        = Column(String, nullable=False)
     metragem         = Column(Integer, nullable=False)
-    quartos          = Column(Integer, nullable=False)
-    distancia_praia  = Column(String, nullable=False)
-    tipo_aluguel     = Column(String, nullable=False)
+    quartos          = Column(Integer, nullable=False, index=True)
+    distancia_praia  = Column(String, nullable=False, index=True)
+    tipo_aluguel     = Column(String, nullable=False, index=True)
     mobilhada        = Column(Boolean, nullable=False)
-    preco            = Column(String, nullable=False)    # <-- novo campo
-    disponivel       = Column(Boolean, default=True, nullable=False)
+    preco            = Column(String, nullable=False)
+    disponivel       = Column(Boolean, default=True, nullable=False, index=True)
+    
+    # Índice composto para consultas comuns (disponivel + filtros)
+    __table_args__ = (
+        Index('idx_disponivel_quartos', 'disponivel', 'quartos'),
+        Index('idx_disponivel_distancia', 'disponivel', 'distancia_praia'),
+        Index('idx_disponivel_tipo', 'disponivel', 'tipo_aluguel'),
+    )
     images           = relationship(
         "Image",
         back_populates="imovel",
